@@ -1,0 +1,69 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - achraf
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Python environment for Django
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    # Step 3: Install Django dependencies
+    - name: Install Django dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+
+    # Step 4: Run Django tests
+    - name: Run Django tests
+      run: |
+        source venv/bin/activate
+        python manage.py test
+
+    # Step 5: Set up Node.js for React
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    # Step 6: Install React dependencies
+    - name: Install React dependencies
+      run: |
+        cd reactfrontend
+        npm install
+
+    # Step 7: Build the React app
+    - name: Build React app
+      run: |
+        cd reactfrontend
+        npm run build
+
+    # Step 8: Build Docker image for Django and React
+    - name: Build Docker image
+      run: |
+        docker build -t yourusername/django-react-app .
+
+    # Step 9: Log in to DockerHub (use GitHub secrets for security)
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Step 10: Push Docker image to DockerHub
+    - name: Push Docker image
+      run: |
+        docker push yourusername/django-react-app

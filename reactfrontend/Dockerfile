@@ -1,18 +1,29 @@
-# Use official Node.js image
-FROM node:18-alpine
+# Use official Node.js image with a smaller base
+FROM node:20-alpine AS builder
 
 # Set the working directory
 WORKDIR /app
 
-# Copy package.json and install dependencies
+# Copy package.json and package-lock.json first to leverage Docker cache
 COPY package.json package-lock.json ./
-RUN npm install
+
+# Install dependencies using npm ci (faster & more reliable than npm install)
+RUN npm ci --only=production
 
 # Copy the React project files
 COPY . .
 
-# Expose port 3000
-EXPOSE 3000
+# Build the React app
+RUN npm run build
 
-# Start the React development server
-CMD ["npm", "start"]
+# Use a lightweight Nginx image for serving the React app
+FROM nginx:alpine
+
+# Copy built React files to Nginx's default public folder
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Expose port 80 for serving the app
+EXPOSE 80
+
+# Start Nginx server
+CMD ["nginx", "-g", "daemon off;"]
