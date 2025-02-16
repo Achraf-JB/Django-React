@@ -5,10 +5,9 @@ services:
     build: ./djangobackend  # Path to the Django backend Dockerfile
     ports:
       - "8000:8000"
-    depends_on:
-      - db
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/dbname
+      - DATABASE_URL=postgresql://user:password@db:5432/dbname  # Example of environment variable
+      # Add other environment variables here if necessary
 
   frontend:
     build: ./reactfrontend  # Path to the React frontend Dockerfile
@@ -16,12 +15,3 @@ services:
       - "3000:80"
     depends_on:
       - backend
-
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: dbname
-    ports:
-      - "5432:5432"
