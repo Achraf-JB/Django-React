@@ -11,7 +11,7 @@ COPY reactfrontend/package.json reactfrontend/package-lock.json ./
 RUN npm install --omit=dev
 
 # Copy the rest of the application files
-COPY . .
+COPY reactfrontend/ ./
 
 # Build the React app
 RUN npm run build
