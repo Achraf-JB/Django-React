@@ -25,44 +25,144 @@ jobs:
         source venv/bin/activate
         pip install -r requirements.txt
 
-    # Step 4: Run Django tests
+    
     - name: Run Django tests
       run: |
         cd djangobackend
         source venv/bin/activate
         python manage.py test
 
-    # Step 5: Set up Node.js for React
+    
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '22.14.0'
 
-    # Step 6: Install React dependencies
+    
     - name: Install React dependencies
       run: |
         cd reactfrontend
         npm install
 
-    # Step 7: Build the React app
+    
     - name: Build React app
       run: |
         cd reactfrontend
         npm run build
 
-    # Step 8: Build Docker image for Django and React
-    - name: Build Docker image
-      run: |
-        docker build -t yourusername/django-react-app .
+  trivy-scan:
+    name: Run Trivy Scan
+    runs-on: ubuntu-latest
+    needs: build
 
-    # Step 9: Log in to DockerHub (use GitHub secrets for security)
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    
+    - name:  Setup Trivy
+      uses: aquasecurity/trivy-action@master
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        scan-type: "fs"
+        format: table
+        scan-ref: .
+        severity: HIGH,CRITICAL
+        output: 'trivy-results-table'
+        ignore-unfixed: true
 
-    # Step 10: Push Docker image to DockerHub
-    - name: Push Docker image
-      run: |
-        docker push yourusername/django-react-app
+    - name: Upload Trivy Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: trivy-results
+        path: trivy-results-table 
+
+  depchecktest:
+    runs-on: ubuntu-latest
+    name: depecheck_test
+    needs: trivy-scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Depcheck
+        uses: dependency-check/Dependency-Check_Action@main
+        id: Depcheck
+        with:
+          project: 'test'
+          path: '.'
+          format: 'HTML'
+          out: 'reports'
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+           name: Depcheck report
+           path: ${{github.workspace}}/reports
+  docker_build:
+    runs-on: ubuntu-latest
+    needs: depchecktest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Docker Login
+        uses: docker/login-action@v2.2.0
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+
+      - name: Build and Push Django Image
+        run: |
+          docker build -f ./djangobackend/Dockerfile -t ${{secrets.DOCKER_USERNAME }}/django:v${{ github.run_number }} .
+          docker push ${{secrets.DOCKER_USERNAME }}/django:v${{ github.run_number }}
+
+      - name: Build and Push React Image
+        run: |
+          docker build -f ./reactfrontend/Dockerfile -t ${{secrets.DOCKER_USERNAME}}/react:v${{ github.run_number }} .
+          docker push ${{secrets.DOCKER_USERNAME}}/react:v${{ github.run_number }}
+
+
+
+  scan:
+    runs-on: ubuntu-latest
+    needs: docker_build
+    steps:
+      - name: Run Trivy vulnerability scanner for django image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: '${{secrets.DOCKER_USERNAME}}/django:v${{ github.run_number }}'
+          format: 'json'
+          output: trivy-report-django.json
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          debug: true
+      - name: Upload Trivy Report as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-report-django
+          path: trivy-report-django.json  
+
+
+
+      - name: Run Trivy vulnerability scanner for react image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: '${{secrets.DOCKER_USERNAME}}/react:v${{ github.run_number }}'
+          format: 'json'
+          output: trivy-report-react.json
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          debug: true
+      - name: Upload Trivy Report as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-report-react
+          path: trivy-report-react.json 
+
+
+      
