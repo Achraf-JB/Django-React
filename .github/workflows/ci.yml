@@ -10,19 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    # Step 1: Checkout the code
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Set up Python environment for Django
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.9'
 
-    # Step 3: Install Django dependencies
     - name: Install Django dependencies
       run: |
+        cd djangobackend
         python -m venv venv
         source venv/bin/activate
         pip install -r requirements.txt
@@ -30,6 +28,7 @@ jobs:
     # Step 4: Run Django tests
     - name: Run Django tests
       run: |
+        cd djangobackend
         source venv/bin/activate
         python manage.py test
 
@@ -37,7 +36,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '16'
+        node-version: '22.14.0'
 
     # Step 6: Install React dependencies
     - name: Install React dependencies
