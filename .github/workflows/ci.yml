@@ -71,7 +71,7 @@ jobs:
         ignore-unfixed: true
 
     - name: Upload Trivy Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: trivy-results
         path: trivy-results-table 
@@ -140,7 +140,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           debug: true
       - name: Upload Trivy Report as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: trivy-report-django
           path: trivy-report-django.json  
@@ -159,7 +159,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           debug: true
       - name: Upload Trivy Report as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: trivy-report-react
           path: trivy-report-react.json 
