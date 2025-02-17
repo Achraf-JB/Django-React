@@ -5,7 +5,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json first (leverage Docker cache)
-COPY package.json package-lock.json ./
+COPY reactfrontend/package.json reactfrontend/package-lock.json ./
 
 # Install only production dependencies
 RUN npm install --omit=dev
